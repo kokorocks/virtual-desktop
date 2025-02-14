@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeerJS Video Receiver</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.3.1/peerjs.min.js"></script>
+</head>
+<body>
+    <h2>Live Stream</h2>
+    <video id="video" autoplay playsinline></video>
+    <button onclick="sendMessage()">Send Message</button>
+    <input type="text" id="messageBox" placeholder="Type message...">
+    
+    <script>
+        const PEER_ID = "your_unique_peer_id"; // Same ID as in Python script
+        const peer = new Peer();
+        let conn;
+        let mediaStream;
+        
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            mediaStream = stream;
+        }).catch(err => console.error("Audio capture error:", err));
+        
+        peer.on('open', (id) => {
+            console.log("My peer ID is: " + id);
+            conn = peer.connect(PEER_ID);
+            conn.on('open', () => {
+                conn.send("Client connected");
+            });
+        });
+        
+        peer.on('connection', (conn) => {
+            conn.on('data', (data) => {
+                console.log("Received: ", data);
+            });
+        });
+        
+        peer.on('call', (call) => {
+            call.answer(mediaStream);
+            call.on('stream', (remoteStream) => {
+                document.getElementById("video").srcObject = remoteStream;
+            });
+        });
+        
+        function sendMessage() {
+            const message = document.getElementById("messageBox").value;
+            if (conn && message) {
+                conn.send(message);
+                console.log("Sent: ", message);
+            }
+        }
+    </script>
+</body>
+</html>
